@@ -1,0 +1,30 @@
+# Python-related
+*.pyc
+*.pyo
+__pycache__/
+
+# Virtual environment
+venv/
+env/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Model files
+math_expr_model.h5
+label_encoder.pkl
+
+# Logs
+*.log
+
+# Dataset-related
+dataset/images/
+dataset/labels.csv
+
+# IDE files (e.g., PyCharm, VSCode)
+.vscode/
+.idea/
+
+# OS-specific files (e.g., macOS, Windows)
+.DS_Store
+Thumbs.db
