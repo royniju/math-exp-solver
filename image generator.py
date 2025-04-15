@@ -24,11 +24,11 @@ def create_image(expression, filename):
     img.save(filename)
 
 # CSV file
-with open("dataset/labels.csv", mode='w', newline='') as file:
+with open("dataset/labels.csv", mode='w', newline='',encoding= 'utf-8') as file:
     writer = csv.writer(file)
     writer.writerow(["filename", "label"])
 
-    for i in range(500):  # Number of expressions
+    for i in range(5000):  # Number of expressions
         expr = random_expr()
         filename = f"img_{i:03d}.png"
         filepath = os.path.join("dataset/images", filename)
