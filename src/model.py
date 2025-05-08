@@ -1,29 +1,23 @@
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import (
-    Input, Conv2D, MaxPooling2D, Flatten,
-    Dense, Dropout, BatchNormalization
-)
-from tensorflow.keras.optimizers import Adam
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-def create_model(input_shape=(64, 64, 1), num_classes=10):
-    inputs = Input(shape=input_shape)
+class CharCNN(nn.Module):
+    def __init__(self, num_classes):
+        super(CharCNN, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, 32, 3, padding=1), nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(32, 64, 3, padding=1), nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        self.fc = nn.Sequential(
+            nn.Linear(64 * 7 * 7, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_classes)
+        )
 
-    x = Conv2D(32, (3, 3), padding="same", activation="relu")(inputs)
-    x = BatchNormalization()(x)
-    x = MaxPooling2D(pool_size=(2, 2))(x)
-
-    x = Conv2D(64, (3, 3), padding="same", activation="relu")(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling2D(pool_size=(2, 2))(x)
-
-    x = Flatten()(x)
-    x = Dense(128, activation="relu")(x)
-    x = Dropout(0.4)(x)
-
-    outputs = Dense(num_classes, activation="softmax")(x)
-
-    model = Model(inputs=inputs, outputs=outputs)
-    model.compile(optimizer=Adam(learning_rate=0.001),
-                  loss="sparse_categorical_crossentropy",
-                  metrics=["accuracy"])
-    return model
+    def forward(self, x):
+        x = self.conv(x)
+        x = x.view(x.size(0), -1)
+        return self.fc(x)
