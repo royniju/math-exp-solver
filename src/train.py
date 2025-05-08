@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch import nn, optim
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(DEVICE)
 BATCH_SIZE = 64
 EPOCHS = 10
 

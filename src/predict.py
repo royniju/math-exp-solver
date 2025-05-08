@@ -1,49 +1,64 @@
-import os
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
 import numpy as np
-import tensorflow as tf
 import cv2
+import os
+
+from model import CharCNN  # Assuming you saved the model definition in model.py
 import pickle
 
-# Load saved model and characters
-model = tf.keras.models.load_model("crnn_ctc_model.h5", compile=False)
-with open("characters.pkl", "rb") as f:
-    characters = pickle.load(f)
+# Load model
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = CharCNN(num_classes=16)  # Replace with your class count
+model.load_state_dict(torch.load("char_cnn.pth", map_location=device))
+model.to(device)
+model.eval()
 
-# Mapping index to character
-idx_to_char = {i: ch for i, ch in enumerate(characters)}
+# Load label map (index to character)
+with open("label_map.pkl", "rb") as f:
+    idx_to_char = pickle.load(f)
 
-def preprocess_image(image_path, img_width=128, img_height=32):
-    # Load image in grayscale
-    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+# Image preprocessing
+transform = transforms.Compose([
+    transforms.Resize((28, 28)),
+    transforms.Grayscale(),
+    transforms.ToTensor(),
+])
 
-    # Resize to (width, height)
-    img = cv2.resize(img, (img_width, img_height))  # (128, 32)
+def segment_image(image_path):
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
 
-    # Normalize to [0, 1]
-    img = img.astype(np.float32) / 255.0
+    # Find contours (connected components)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Get bounding boxes and sort by x-coordinate (left to right)
+    boxes = [cv2.boundingRect(cnt) for cnt in contours]
+    boxes = sorted(boxes, key=lambda b: b[0])
 
-    # Reshape to (batch, width, height, channels)
-    img = np.expand_dims(img, axis=-1)           # (128, 32, 1)
-    img = np.transpose(img, (1, 0, 2))            # (32, 128, 1)
-    img = np.expand_dims(img, axis=0)            # (1, 32, 128, 1)
+    chars = []
+    for x, y, w, h in boxes:
+        char_img = gray[y:y+h, x:x+w]
+        pil_img = Image.fromarray(char_img)
+        chars.append(pil_img)
 
-    return img
+    return chars
 
-def decode_prediction(pred):
-    decoded, _ = tf.keras.backend.ctc_decode(pred, input_length=np.ones(pred.shape[0]) * pred.shape[1])
-    pred_indices = decoded[0].numpy()
-    pred_text = ""
-    for i in range(pred_indices.shape[1]):
-        index = pred_indices[0][i]
-        if index != -1:
-            pred_text += idx_to_char.get(index, "")
-    return pred_text
+def predict_expression(image_path):
+    chars = segment_image(image_path)
+    expression = ""
 
-# ----------- USAGE EXAMPLE --------------
-image_path = "C:/Users/nijuk/Documents/GitHub/math-exp-solver/dataset/images/img_428.png"
+    for char_img in chars:
+        img_tensor = transform(char_img).unsqueeze(0).to(device)  # Add batch dimension
+        with torch.no_grad():
+            output = model(img_tensor)
+            pred_idx = torch.argmax(output, dim=1).item()
+            expression += idx_to_char[pred_idx]
+    
+    return expression
 
-img = preprocess_image(image_path)
-pred = model.predict(img)
-decoded = decode_prediction(pred)
-
-print(f"Predicted expression: {decoded}")
+# Predict from test image
+expression = predict_expression("C:/Users/nijuk/Documents/GitHub/math-exp-solver/src/test.png")
+print("Predicted Expression:", expression)
