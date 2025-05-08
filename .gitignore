@@ -18,7 +18,7 @@ label_encoder.pkl
 *.log
 
 # Dataset-related
-dataset/images/
+dataset/
 dataset/labels.csv
 
 # IDE files (e.g., PyCharm, VSCode)
