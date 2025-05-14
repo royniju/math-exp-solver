@@ -1,4 +1,4 @@
-!pip install streamlit-drawable-canvas
+pip install streamlit-drawable-canvas
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 from predict import predict
