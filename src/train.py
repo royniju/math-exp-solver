@@ -50,8 +50,8 @@ val_ds = val_ds.map(preprocess)
 
 # --- Data Augmentation ---
 data_augmentation = tf.keras.Sequential([
-    #tf.keras.layers.RandomRotation(0.05),
-    #tf.keras.layers.RandomTranslation(0.1, 0.1),
+    tf.keras.layers.RandomRotation(0.03),
+    tf.keras.layers.RandomTranslation(0.1, 0.1),
     tf.keras.layers.RandomZoom(0.05)
 ])
 
@@ -72,9 +72,12 @@ model = tf.keras.Sequential([
     tf.keras.layers.MaxPooling2D(),
     tf.keras.layers.Conv2D(64, (4, 4), activation='relu'),
     tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.BatchNormalization(),
     tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
     tf.keras.layers.MaxPooling2D(),
     tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dropout(0.4),
     tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(num_classes, activation='softmax')
 ])

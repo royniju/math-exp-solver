@@ -27,8 +27,24 @@ if st.button("Predict"):
         img= canvas_result.image_data.astype(np.uint8)
         gray= cv2.cvtColor(img, cv2.COLOR_RGBA2GRAY)
         exp = predict(gray)
-
+        st.session_state.exp = exp
         st.subheader(f"predicted exp: {exp}")
 
     else: 
         st.subheader("No image in canvas")
+
+    st.subheader("Is the prediction correct?")
+
+if "exp" in st.session_state:
+    if st.button("YES"):
+        try:
+            k = eval(st.session_state.exp)
+            st.success(f"Evaluation result: {k}")
+        except Exception as e:
+            st.error(f"Error evaluating expression: {e}")
+    elif st.button("NO"):
+        st.warning("Try again")
+else:
+    st.info("Please predict an expression first.")
+
+
