@@ -3,6 +3,7 @@ numpy
 matplotlib
 pandas
 opencv-python
+cv2
 Pillow
 streamlit
 streamlit-drawable-canvas
