@@ -1,49 +1,64 @@
-import os
-import numpy as np
-import tensorflow as tf
 import cv2
-import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import os
 
-# Load saved model and characters
-model = tf.keras.models.load_model("crnn_ctc_model.h5", compile=False)
-with open("characters.pkl", "rb") as f:
-    characters = pickle.load(f)
+# Load trained model
+model = tf.keras.models.load_model("symbol_classifier_tf_model.keras")
 
-# Mapping index to character
-idx_to_char = {i: ch for i, ch in enumerate(characters)}
+# Rebuild class label mapping from directory
+class_names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '.', '/', '=', '*', '-']
+#print("Class names:", class_names)
 
-def preprocess_image(image_path, img_width=128, img_height=32):
-    # Load image in grayscale
-    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+# --- Load and preprocess test image ---
+img = cv2.imread("src/test2.png", cv2.IMREAD_GRAYSCALE)
+_, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
-    # Resize to (width, height)
-    img = cv2.resize(img, (img_width, img_height))  # (128, 32)
+# Find character contours
+contours, _ = cv2.findContours(img_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+bounding_boxes = [cv2.boundingRect(c) for c in contours]
+bounding_boxes = sorted(bounding_boxes, key=lambda x: x[0])  # left to right
 
-    # Normalize to [0, 1]
-    img = img.astype(np.float32) / 255.0
+expression = ""
 
-    # Reshape to (batch, width, height, channels)
-    img = np.expand_dims(img, axis=-1)           # (128, 32, 1)
-    img = np.transpose(img, (1, 0, 2))            # (32, 128, 1)
-    img = np.expand_dims(img, axis=0)            # (1, 32, 128, 1)
+for (x, y, w, h) in bounding_boxes:
+    char_img = img[y:y+h, x:x+w]
 
-    return img
+    # Add white padding to make the image square before resizing
+    padding = 10
+    size = max(w, h) + 2 * padding
+    square_img = np.ones((size, size), dtype=np.uint8) * 255  # white background
+    x_offset = (size - w) // 2
+    y_offset = (size - h) // 2
+    square_img[y_offset:y_offset+h, x_offset:x_offset+w] = char_img
 
-def decode_prediction(pred):
-    decoded, _ = tf.keras.backend.ctc_decode(pred, input_length=np.ones(pred.shape[0]) * pred.shape[1])
-    pred_indices = decoded[0].numpy()
-    pred_text = ""
-    for i in range(pred_indices.shape[1]):
-        index = pred_indices[0][i]
-        if index != -1:
-            pred_text += idx_to_char.get(index, "")
-    return pred_text
+    # Resize and normalize
+    resized_img = cv2.resize(square_img, (28, 28))
+    resized_img = resized_img.astype(np.float32) / 255.0
+    resized_img = np.expand_dims(resized_img, axis=-1)  # Add channel
+    resized_img = np.expand_dims(resized_img, axis=0)   # Add batch
 
-# ----------- USAGE EXAMPLE --------------
-image_path = "C:/Users/nijuk/Documents/GitHub/math-exp-solver/dataset/images/img_428.png"
+    # Predict
+    pred = model.predict(resized_img, verbose=0)
+    pred_class = np.argmax(pred, axis=1)[0]
+    predicted_char = class_names[pred_class]
 
-img = preprocess_image(image_path)
-pred = model.predict(img)
-decoded = decode_prediction(pred)
+    expression += predicted_char #+" "
 
-print(f"Predicted expression: {decoded}")
+    # Optional: Draw rectangles
+    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 1)
+
+# Show prediction result
+try:
+    val = eval(expression)
+except:
+    val ="Invalid Syntax"
+
+plt.figure(figsize=(10, 4))
+plt.imshow(img, cmap='gray')
+plt.title(f"Predicted Expression: {expression} Value: {val}")
+plt.axis("off")
+plt.show()
+
+print("Predicted Expression:", expression )
