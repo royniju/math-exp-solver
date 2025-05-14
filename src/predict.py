@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 # Load trained model
-model = tf.keras.models.load_model("C:/Users/nijuk/Documents/GitHub/math-exp-solver/symbol_classifier_tf_model.keras")
+model = tf.keras.models.load_model("./symbol_classifier_tf_model.keras")
 
 # Rebuild class label mapping from directory
 class_names = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '.', '/', '=', '*', '-']
