@@ -2,6 +2,8 @@ import tensorflow as tf
 import numpy as np
 import os
 
+from torch import dropout
+
 # --- Config ---
 data_dir = "dataset"
 img_size = (28, 28)
@@ -66,12 +68,14 @@ val_ds = val_ds.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
 # --- CNN Model ---
 model = tf.keras.Sequential([
     tf.keras.layers.Input(shape=(28, 28, 1)),
-    tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+    tf.keras.layers.Conv2D(32, (4, 4), activation='relu'),
     tf.keras.layers.MaxPooling2D(),
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    tf.keras.layers.Conv2D(64, (4, 4), activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
     tf.keras.layers.MaxPooling2D(),
     tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(num_classes, activation='softmax')
 ])
 
@@ -85,7 +89,7 @@ model.summary()
 history = model.fit(
     train_ds,
     validation_data=val_ds,
-    epochs=30
+    epochs=50
 )
 
 # --- Save the Model ---
