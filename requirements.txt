@@ -4,6 +4,8 @@ matplotlib
 pandas
 opencv-python
 Pillow
+streamlit
+streamlit-drawable-canvas
 scikit-learn
 jupyterlab
 tqdm
